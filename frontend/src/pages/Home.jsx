@@ -12,13 +12,48 @@ function Home() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
+        setLoading(true);
+        setError("");
+
         const response = await api.get("/products");
-        setProducts(response.data.products || []);
+
+        if (
+          response.data &&
+          Array.isArray(response.data.products)
+        ) {
+          setProducts(response.data.products);
+        } else {
+          console.error(
+            "Unexpected Products API Response:",
+            response.data
+          );
+
+          setError("Invalid products response from server.");
+        }
       } catch (err) {
-        setError(
-          err.response?.data?.message ||
-            "Unable to load products. Please try again."
-        );
+        console.error("Products API Error:", {
+          message: err.message,
+          code: err.code,
+          status: err.response?.status,
+          response: err.response?.data,
+          url: err.config?.baseURL + err.config?.url,
+        });
+
+        if (err.response) {
+          setError(
+            `Unable to load products. Server Error: ${err.response.status} - ${
+              err.response.data?.message || "Please try again."
+            }`
+          );
+        } else if (err.code === "ERR_NETWORK") {
+          setError(
+            "Network Error: Unable to connect to ShopEase server. Please check your internet connection."
+          );
+        } else {
+          setError(
+            `Unable to load products: ${err.message}`
+          );
+        }
       } finally {
         setLoading(false);
       }
@@ -28,7 +63,9 @@ function Home() {
   }, []);
 
   const filteredProducts = products.filter((product) =>
-    product.name.toLowerCase().includes(search.toLowerCase())
+    product.name
+      .toLowerCase()
+      .includes(search.toLowerCase())
   );
 
   return (
@@ -57,27 +94,39 @@ function Home() {
       <section className="products-section" id="products">
         <div className="section-heading">
           <div>
-            <p className="section-subtitle">OUR COLLECTION</p>
+            <p className="section-subtitle">
+              OUR COLLECTION
+            </p>
+
             <h2>Featured Products</h2>
           </div>
 
           <div className="search-box">
             <Search size={19} />
+
             <input
               type="text"
               placeholder="Search products..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) =>
+                setSearch(e.target.value)
+              }
             />
           </div>
         </div>
 
         {loading ? (
-          <p className="status-message">Loading products...</p>
+          <p className="status-message">
+            Loading products...
+          </p>
         ) : error ? (
-          <p className="error-message">{error}</p>
+          <p className="error-message">
+            {error}
+          </p>
         ) : filteredProducts.length === 0 ? (
-          <p className="status-message">No products found.</p>
+          <p className="status-message">
+            No products found.
+          </p>
         ) : (
           <div className="products-grid">
             {filteredProducts.map((product) => (
